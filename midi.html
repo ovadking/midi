@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Audio to MIDI Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/@spotify/basic-pitch@latest/dist/index.min.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #121212; color: white; }
+        .container { border: 2px dashed #1db954; padding: 40px; border-radius: 20px; text-align: center; }
+        #status { margin-top: 20px; color: #b3b3b3; }
+        button { background: #1db954; border: none; padding: 10px 20px; border-radius: 20px; color: white; font-weight: bold; cursor: pointer; margin-top: 20px; }
+        input[type="file"] { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>MIDI Converter</h1>
+        <p>Select a song to convert to MIDI (Personal Use)</p>
+        <input type="file" id="audioInput" accept="audio/*">
+        <br>
+        <button onclick="convertToMidi()">Convert to MIDI</button>
+        <div id="status">Ready</div>
+    </div>
+
+    <script>
+        async function convertToMidi() {
+            const fileInput = document.getElementById('audioInput');
+            const status = document.getElementById('status');
+            
+            if (fileInput.files.length === 0) {
+                alert("Please select a file first!");
+                return;
+            }
+
+            status.innerText = "Initializing AI Engine...";
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const file = fileInput.files[0];
+            const arrayBuffer = await file.arrayBuffer();
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+            status.innerText = "Converting Audio to MIDI (this may take a minute)...";
+
+            // Basic Pitch Inference
+            // Note: This uses the Spotify Basic-Pitch JS library
+            const bp = new basicPitch.BasicPitch("https://unpkg.com/@spotify/basic-pitch@latest/model/model.json");
+            
+            await bp.evaluateModel(audioBuffer, (notes) => {
+                // Creates a MIDI file from the notes detected
+                const midiData = basicPitch.notesToMidi(notes);
+                saveMidi(midiData, file.name.split('.')[0] + ".mid");
+                status.innerText = "Done! Your MIDI file has been downloaded.";
+            });
+        }
+
+        function saveMidi(data, filename) {
+            const blob = new Blob([data], { type: 'audio/midi' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+    </script>
+</body>
+</html>
